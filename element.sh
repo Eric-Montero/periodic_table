@@ -23,6 +23,5 @@ if [[ $1 ]]
 
     fi
   else
-  echo "Usage: $SCRIPT_NAME <element_name_or_atomic_number>"
   echo "Please provide an element as an argument."
 fi
