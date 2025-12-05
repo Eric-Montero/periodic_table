@@ -1,6 +1,7 @@
 #! /bin/bash
 
 PSQL="psql --username=freecodecamp --dbname=periodic_table --no-align --tuples-only -c"
+SCRIPT_NAME=$(basename "$0")
 
 if [[ $1 ]]
   then
@@ -22,6 +23,6 @@ if [[ $1 ]]
 
     fi
   else
-  echo "Usage: $0 <element_name_or_atomic_number>"
+  echo "Usage: $SCRIPT_NAME <element_name_or_atomic_number>"
   echo "Please provide an element as an argument."
 fi
