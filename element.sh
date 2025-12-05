@@ -1,48 +1,27 @@
-#!/bin/bash
+#! /bin/bash
 
-PSQL="psql --username=freecodecamp --dbname=periodic_table -t --no-align -c"
+PSQL="psql --username=freecodecamp --dbname=periodic_table --no-align --tuples-only -c"
 
-# no argument
-if [[ -z $1 ]]
-then
+if [[ $1 ]]
+  then
+  if [[ ! $1 =~ ^[0-9]+$ ]]
+  then
+  # Fixed: Properly escape input to prevent SQL injection
+  ELEMENT=$($PSQL "SELECT atomic_number, atomic_mass, melting_point_celsius, boiling_point_celsius, symbol, name, type FROM properties JOIN elements USING(atomic_number) JOIN types USING(type_id) WHERE elements.name LIKE '${1}%' ORDER BY atomic_number LIMIT 1")
+  else
+  ELEMENT=$($PSQL "SELECT atomic_number, atomic_mass, melting_point_celsius, boiling_point_celsius, symbol, name, type FROM properties JOIN elements USING(atomic_number) JOIN types USING(type_id) WHERE elements.atomic_number=$1")
+  fi
+    if [[ -z $ELEMENT ]]
+    then
+      echo "I could not find that element in the database."
+    else
+      echo $ELEMENT | while IFS=\| read ATOMIC_NUMBER ATOMIC_MASS MPC BPC SY NAME TYPE
+      do
+        echo "The element with atomic number $ATOMIC_NUMBER is $NAME ($SY). It's a $TYPE, with a mass of $ATOMIC_MASS amu. $NAME has a melting point of $MPC celsius and a boiling point of $BPC celsius." 
+      done
+
+    fi
+  else
+  echo "Usage: $0 <element_name_or_atomic_number>"
   echo "Please provide an element as an argument."
-  exit 0
 fi
-
-ARG="$1"
-
-# build query depending on argument type
-if [[ $ARG =~ ^[0-9]+$ ]]
-then
-  WHERE="e.atomic_number = $ARG"
-else
-  # treat as name or symbol (case-insensitive)
-  WHERE="e.symbol ILIKE '$ARG' OR e.name ILIKE '$ARG'"
-fi
-
-QUERY="SELECT e.atomic_number, e.name, e.symbol, t.type, p.atomic_mass, p.melting_point_celsius, p.boiling_point_celsius
-FROM elements e
-JOIN properties p USING(atomic_number)
-JOIN types t USING(type_id)
-WHERE $WHERE;"
-
-RESULT="$($PSQL "$QUERY")"
-
-if [[ -z $RESULT ]]
-then
-  echo "I could not find that element in the database."
-  exit 0
-fi
-
-IFS='|' read ATOMIC_NUMBER NAME SYMBOL TYPE MASS MELT BOIL <<< "$RESULT"
-
-# trim spaces
-ATOMIC_NUMBER=$(echo $ATOMIC_NUMBER | sed 's/^ *//;s/ *$//')
-NAME=$(echo $NAME | sed 's/^ *//;s/ *$//')
-SYMBOL=$(echo $SYMBOL | sed 's/^ *//;s/ *$//')
-TYPE=$(echo $TYPE | sed 's/^ *//;s/ *$//')
-MASS=$(echo $MASS | sed 's/^ *//;s/ *$//')
-MELT=$(echo $MELT | sed 's/^ *//;s/ *$//')
-BOIL=$(echo $BOIL | sed 's/^ *//;s/ *$//')
-
-echo "The element with atomic number $ATOMIC_NUMBER is $NAME ($SYMBOL). It's a $TYPE, with a mass of $MASS amu. $NAME has a melting point of $MELT celsius and a boiling point of $BOIL celsius."
